@@ -3,6 +3,9 @@ FROM node:22-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 
+# Use npm registry mirror for China
+ENV PNPM_REGISTRY_URL=https://registry.npmmirror.com
+
 WORKDIR /app
 
 # Copy workspace config and all package.json files for dependency resolution
@@ -37,7 +40,12 @@ COPY packages/ packages/
 
 # Set build-time env: tells Next.js rewrites to proxy API calls to the backend service
 ARG REMOTE_API_URL=http://backend:8080
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws
+
 ENV REMOTE_API_URL=$REMOTE_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 ENV STANDALONE=true
 
 # Build the web app (standalone output for minimal runtime)

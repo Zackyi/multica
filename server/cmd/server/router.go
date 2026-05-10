@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
@@ -77,7 +78,10 @@ func NewRouter(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus) chi.Route
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
+		info := middleware.LocalModeInfo()
+		info["status"] = "ok"
+		jsonBytes, _ := json.Marshal(info)
+		w.Write(jsonBytes)
 	})
 
 	// WebSocket
@@ -92,9 +96,9 @@ func NewRouter(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus) chi.Route
 	r.Post("/auth/verify-code", h.VerifyCode)
 	r.Post("/auth/google", h.GoogleLogin)
 
-	// Daemon API routes (require daemon token or valid user token)
+	// Daemon API routes (require daemon token or valid user token, or local mode)
 	r.Route("/api/daemon", func(r chi.Router) {
-		r.Use(middleware.DaemonAuth(queries))
+		r.Use(middleware.LocalDaemonAuth(queries))
 
 		r.Post("/register", h.DaemonRegister)
 		r.Post("/deregister", h.DaemonDeregister)
@@ -116,9 +120,9 @@ func NewRouter(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus) chi.Route
 		r.Get("/tasks/{taskId}/messages", h.ListTaskMessages)
 	})
 
-	// Protected API routes
+	// Protected API routes (use local auth if MULTICA_LOCAL_MODE=true)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(queries))
+		r.Use(middleware.LocalAuth(queries))
 		r.Use(middleware.RefreshCloudFrontCookies(cfSigner))
 
 		// --- User-scoped routes (no workspace context required) ---

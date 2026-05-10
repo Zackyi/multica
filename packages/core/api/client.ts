@@ -84,6 +84,28 @@ export class ApiClient {
     this.workspaceId = id;
   }
 
+  // Raw fetch without auth headers for public endpoints (like /health)
+  async raw<T>(path: string, init?: RequestInit): Promise<T> {
+    const rid = crypto.randomUUID().slice(0, 8);
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Request-ID": rid,
+      ...((init?.headers as Record<string, string>) ?? {}),
+    };
+
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      headers,
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+
+    return res.json() as Promise<T>;
+  }
+
   private authHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
     if (this.token) headers["Authorization"] = `Bearer ${this.token}`;

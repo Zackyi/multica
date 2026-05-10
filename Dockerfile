@@ -3,6 +3,9 @@ FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git
 
+# Use Go proxy for China
+ENV GOPROXY=https://goproxy.cn,direct
+
 WORKDIR /src
 
 # Cache dependencies
