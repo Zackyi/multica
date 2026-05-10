@@ -1,3 +1,15 @@
+function uuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 import type {
   Issue,
   CreateIssueRequest,
@@ -86,7 +98,7 @@ export class ApiClient {
 
   // Raw fetch without auth headers for public endpoints (like /health)
   async raw<T>(path: string, init?: RequestInit): Promise<T> {
-    const rid = crypto.randomUUID().slice(0, 8);
+    const rid = uuid().slice(0, 8);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Request-ID": rid,
@@ -130,7 +142,7 @@ export class ApiClient {
   }
 
   private async fetch<T>(path: string, init?: RequestInit): Promise<T> {
-    const rid = crypto.randomUUID().slice(0, 8);
+    const rid = uuid().slice(0, 8);
     const start = Date.now();
     const method = init?.method ?? "GET";
 
@@ -632,7 +644,7 @@ export class ApiClient {
     if (opts?.issueId) formData.append("issue_id", opts.issueId);
     if (opts?.commentId) formData.append("comment_id", opts.commentId);
 
-    const rid = crypto.randomUUID().slice(0, 8);
+    const rid = uuid().slice(0, 8);
     const start = Date.now();
     this.logger.info("→ POST /api/upload-file", { rid });
 
